@@ -1,9 +1,50 @@
 ﻿using System;
+using System.Threading;
 
 namespace perceptron
 {
     class Program
     {
+        class ErrorFunction
+        {
+            Func<double, double, double> function;
+            Func<double, double, double> derivative;
+            public ErrorFunction(Func<double, double, double> function, Func<double, double, double> derivative) 
+            {
+                this.function = function;
+                this.derivative = derivative;
+            }
+
+            public double Function(double a, double d) 
+            {
+                return Math.Pow(d - a, 2);
+            }
+            public double Derivative(double a, double d) 
+            {
+                return -2 * (d - a);
+            }
+        }
+
+        public class ActivationFunction
+        {
+            Func<double, double> function;
+            Func<double, double> derivative;
+            public ActivationFunction() 
+            {
+            }
+
+            public double Function(double input) 
+            {
+                return 1 / (1 + Math.Pow(Math.E, -input));
+            }
+
+            public double Derivative(double input) 
+            {
+                double func = 1 / (1 + Math.Pow(Math.E, -input));
+                return func * (1 - func);
+            }
+        }
+
         class Perceptron
         {
             double[] weights;
@@ -11,6 +52,7 @@ namespace perceptron
             double mutationAmount;
             Random random;
             Func<double, double, double> errorFunc;
+            ActivationFunction a = new ActivationFunction();
 
             public Perceptron(double[] initialWeightValues, double initialBiasValue, double mutationAmount, Random random, Func<double, double, double> errorFunc)
             {
@@ -49,7 +91,7 @@ namespace perceptron
                     rtrn += weights[i] * inputs[i];
                 }
                 
-                return rtrn + bias;
+                return a.Function(rtrn + bias);
             }
 
             public double[] Compute(double[][] inputs)
@@ -125,17 +167,34 @@ namespace perceptron
 
         static void Main(string[] args)
         {
-            Perceptron p = new Perceptron(2, .5, new Random(), errorFunc);
+            Perceptron p = new Perceptron(2, .1, new Random(), errorFunc);
 
             p.Randomize(-1, 1);
 
             double error = int.MaxValue;
 
-            while(error > .25)
+            var inputs = new double[][] { new double[] {0, 1}, new double[] {1, 0}, new double[] {0, 0}, new double[] {1, 1} };
+
+            var expected = new double[] { 0, 0, 0, 1 };
+
+            while (error > .1)
             {
-                error = p.Train(new double[][] { new double[] {0, 1}, new double[] {1, 0}, new double[] {1, 1}, new double[] {0, 0}}, new double[] {0, 0, 1, 1}, error);
-                Console.WriteLine(error);
+                Console.SetCursorPosition(0, 0);
+                error = p.Train(inputs, expected, error);
+
+                Console.WriteLine($"Error: {error}");
+
+                var actual = p.Compute(inputs);
+                for (int i = 0; i < actual.Length; i++)
+                {
+                    Console.WriteLine($"Item {i + 1}");
+
+                    Console.WriteLine($"\tActual: {actual[i]}");
+                    Console.WriteLine($"\tExpected: {expected[i]}");
+                }
+                Thread.Sleep(10);
             }
+            
 
             //output value of certain input to check, use Console.setCursorPosition()
         }
