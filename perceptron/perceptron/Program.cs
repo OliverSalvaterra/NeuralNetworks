@@ -50,6 +50,7 @@ namespace perceptron
             double[] weights;
             double bias;
             double mutationAmount;
+            double learningRate;
             Random random;
             Func<double, double, double> errorFunc;
             ActivationFunction a = new ActivationFunction();
@@ -70,6 +71,16 @@ namespace perceptron
                 this.mutationAmount = mutationAmount;
                 this.random = random;
                 this.errorFunc = errorFunc;
+            }
+
+            public Perceptron(int amountOfInputs, double learningRate, Random random, Func<double, double, double> errorFunc, ActivationFunction a)
+            {
+                bias = 0;
+                weights = new double[amountOfInputs];
+                this.learningRate = learningRate;
+                this.random = random;
+                this.errorFunc = errorFunc;
+                this.a = a;
             }
 
             public void Randomize(double min, double max)
@@ -159,6 +170,7 @@ namespace perceptron
                 return newError;
             }
         }
+        //change to learningRate*-partialDerivative for train function
 
         public static double errorFunc(double d, double a)
         {
