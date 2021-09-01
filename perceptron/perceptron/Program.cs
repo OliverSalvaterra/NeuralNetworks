@@ -15,6 +15,11 @@ namespace perceptron
                 this.derivative = derivative;
             }
 
+            public ErrorFunction()
+            {
+
+            }
+
             public double Function(double a, double d) 
             {
                 return Math.Pow(d - a, 2);
@@ -54,6 +59,7 @@ namespace perceptron
             Random random;
             Func<double, double, double> errorFunc;
             ActivationFunction a = new ActivationFunction();
+            ErrorFunction e = new ErrorFunction();
 
             public Perceptron(double[] initialWeightValues, double initialBiasValue, double mutationAmount, Random random, Func<double, double, double> errorFunc)
             {
@@ -91,6 +97,18 @@ namespace perceptron
                 {
                     weights[i] = random.NextDouble(min, max);
                 }
+            }
+
+            public double sum(double[] inputs)
+            {
+                double rtrn = 0;
+
+                for(int i = 0; i < weights.Length; i++)
+                {
+                    rtrn += weights[i] * inputs[i];
+                }
+
+                return rtrn + bias;
             }
 
             public double Compute(double[] inputs)
@@ -169,6 +187,55 @@ namespace perceptron
 
                 return newError;
             }
+
+            public double GDTrain(double[] inputs, double desiredOutput)
+            {
+                double z = sum(inputs);
+                double o = Compute(inputs);
+                for(int i = 0; i < inputs.Length; i++)
+                {
+                    weights[i] += learningRate * -(e.Derivative(o, desiredOutput) * a.Derivative(z)*inputs[i]);
+                }
+                bias += learningRate * -(e.Derivative(o, desiredOutput) * a.Derivative(z));
+
+                return e.Function(Compute(inputs), desiredOutput);
+            }
+
+            public double GDTrain(double[][] inputs, double[] desiredOutputs)
+            {
+                double[] changes = new double[weights.Length + 1];
+                
+                for(int j = 0; j < inputs.Length; j++)
+                {
+                    double z = sum(inputs[j]);
+                    double o = Compute(inputs[j]);
+                    for (int i = 0; i < inputs[j].Length; i++)
+                    {
+                        changes[i] += learningRate * -(e.Derivative(o, desiredOutputs[j]) * a.Derivative(z) * inputs[j][i]);
+                    }
+                    changes[changes.Length - 1] += learningRate * -(e.Derivative(o, desiredOutputs[j]) * a.Derivative(z));
+                }
+
+                for(int i = 0; i < changes.Length; i++)
+                {
+                    if(i != changes.Length - 1)
+                    {
+                        weights[i] += changes[i];
+                    }
+                    else
+                    {
+                        bias += changes[i];
+                    }
+                }
+
+                double rtrn = 0;
+                for(int i = 0; i < inputs.Length; i++)
+                {
+                    rtrn += e.Function(Compute(inputs[i]), desiredOutputs[i]);
+                }
+
+                return rtrn / inputs.Length;
+            }
         }
         //change to learningRate*-partialDerivative for train function
 
@@ -179,7 +246,9 @@ namespace perceptron
 
         static void Main(string[] args)
         {
-            Perceptron p = new Perceptron(2, .1, new Random(), errorFunc);
+            //Perceptron p = new Perceptron(2, .1, new Random(), errorFunc); hill climber neuron
+
+            Perceptron p = new Perceptron(2, .05, new Random(), errorFunc, new ActivationFunction());
 
             p.Randomize(-1, 1);
 
@@ -189,10 +258,10 @@ namespace perceptron
 
             var expected = new double[] { 0, 0, 0, 1 };
 
-            while (error > .1)
+            while (error > .02)
             {
                 Console.SetCursorPosition(0, 0);
-                error = p.Train(inputs, expected, error);
+                error = p.GDTrain(inputs, expected);
 
                 Console.WriteLine($"Error: {error}");
 
