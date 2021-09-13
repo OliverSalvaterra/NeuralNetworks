@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace NeuralNetwork
 {
@@ -89,6 +90,20 @@ namespace NeuralNetwork
 
     public class GeneticTrain
     {
+        Func<double[], double> f;
+        (NeuralNetwork, double)[] networks;
+
+        public GeneticTrain(Func<double[], double> f, int[] networkSize, int batchSize)
+        {
+            this.f = f;
+            networks = new (NeuralNetwork, double)[batchSize];
+
+            for(int i = 0; i < batchSize; i++)
+            {
+                networks[i] = (new NeuralNetwork(networkSize), default);
+            }
+        }
+
         public void Mutate(NeuralNetwork n, Random random, double mutationRate)
         {
             foreach (Layer layer in n.layers)
@@ -175,13 +190,18 @@ namespace NeuralNetwork
                 population[i].net.Randomize(random, 0, 1);
             }
         }
+
+        public void SetFitness()
+        {
+
+        }
     }
 
     class Program
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("Hello World!");
+            
         }
     }
 }
