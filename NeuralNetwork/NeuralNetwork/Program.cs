@@ -30,45 +30,46 @@ namespace NeuralNetwork
 
     public class NeuralNetwork
     {
-        public Layer[] layers;
+        public Layer[] Layers;
         ErrorFunction errorFunc;
+        public double Fitness { get; set; }
 
         public NeuralNetwork(params int[] neuronsPerLayer)
         {
             errorFunc = new ErrorFunction();
-            layers = new Layer[neuronsPerLayer.Length];
+            Layers = new Layer[neuronsPerLayer.Length];
 
-            layers[0] = new Layer(neuronsPerLayer[0], null);
-            for(int i = 1; i < layers.Length; i++)
+            Layers[0] = new Layer(neuronsPerLayer[0], null);
+            for(int i = 1; i < Layers.Length; i++)
             {
-                layers[i] = new Layer(neuronsPerLayer[i], layers[i - 1]);
+                Layers[i] = new Layer(neuronsPerLayer[i], Layers[i - 1]);
             }
         }
         public void Randomize(Random random, double min, double max) 
         {
-            foreach(Layer l in layers)
+            foreach(Layer l in Layers)
             {
                 l.Randomize(random, min, max);
             }
         }
         public double[] Compute(double[] inputs) 
         {
-            double[] outputs = new double[layers[layers.Length - 1].Neurons.Length];
+            double[] outputs = new double[Layers[Layers.Length - 1].Neurons.Length];
             
-            for(int i = 0; i < layers[0].Neurons.Length; i++)
+            for(int i = 0; i < Layers[0].Neurons.Length; i++)
             {
-                layers[0].Neurons[i].Output = inputs[i];
+                Layers[0].Neurons[i].Output = inputs[i];
             }
 
-            for(int i = 1; i < layers.Length; i++)
+            for(int i = 1; i < Layers.Length; i++)
             {
-                if(i >= layers.Length - 1)
+                if(i >= Layers.Length - 1)
                 {
-                    outputs = layers[i].Compute();
+                    outputs = Layers[i].Compute();
                 }
                 else
                 {
-                    layers[i].Compute();
+                    Layers[i].Compute();
                 }
             }
 
@@ -89,24 +90,24 @@ namespace NeuralNetwork
     }
 
     public class GeneticTrain
-    {
+    {        
         Func<double[], double> f;
-        (NeuralNetwork, double)[] networks;
+        NeuralNetwork[] networks;
 
         public GeneticTrain(Func<double[], double> f, int[] networkSize, int batchSize)
         {
             this.f = f;
-            networks = new (NeuralNetwork, double)[batchSize];
+            networks = new NeuralNetwork[batchSize];
 
             for(int i = 0; i < batchSize; i++)
             {
-                networks[i] = (new NeuralNetwork(networkSize), default);
+                networks[i] = new NeuralNetwork(networkSize);
             }
         }
 
         public void Mutate(NeuralNetwork n, Random random, double mutationRate)
         {
-            foreach (Layer layer in n.layers)
+            foreach (Layer layer in n.Layers)
             {
                 foreach (Neuron neuron in layer.Neurons)
                 {
@@ -144,11 +145,11 @@ namespace NeuralNetwork
 
         public void Crossover(NeuralNetwork winner, NeuralNetwork loser, Random random)
         {
-            for (int i = 0; i < winner.layers.Length; i++)
+            for (int i = 0; i < winner.Layers.Length; i++)
             {
                 //References to the Layers
-                Layer winLayer = winner.layers[i];
-                Layer childLayer = loser.layers[i];
+                Layer winLayer = winner.Layers[i];
+                Layer childLayer = loser.Layers[i];
 
                 int cutPoint = random.Next(winLayer.Neurons.Length); //calculate a cut point for the layer
                 bool flip = random.Next(2) == 0; //randomly decide which side of the cut point will come from winner
@@ -170,35 +171,61 @@ namespace NeuralNetwork
             }
         }
 
-        public void Train((NeuralNetwork net, double fitness)[] population, Random random, double mutationRate)
+        public void Train(Random random, double mutationRate)
         {
-            Array.Sort(population, (a, b) => b.fitness.CompareTo(a.fitness));
+            Array.Sort(networks, (a, b) => b.Fitness.CompareTo(a.Fitness));
 
-            int start = (int)(population.Length * 0.1);
-            int end = (int)(population.Length * 0.9);
+            int start = (int)(networks.Length * 0.1);
+            int end = (int)(networks.Length * 0.9);
 
             //Notice that this process is only called on networks in the middle 80% of the array
             for (int i = start; i < end; i++)
             {
-                Crossover(population[random.Next(start)].net, population[i].net, random);
-                Mutate(population[i].net, random, mutationRate);
+                Crossover(networks[random.Next(start)], networks[i], random);
+                Mutate(networks[i], random, mutationRate);
             }
 
             //Removes the worst performing networks
-            for (int i = end; i < population.Length; i++)
+            for (int i = end; i < networks.Length; i++)
             {
-                population[i].net.Randomize(random, 0, 1);
+                networks[i].Randomize(random, 0, 1);
             }
         }
 
-        public void SetFitness()
+        public void SetFitness(double[][] data)
         {
-
+            for(int i = 0; i < data.Length; i++)
+            {
+                networks[i].Fitness = f(data[i]);
+            }
         }
     }
 
-    class Program
+    class XOR
     {
+        double[][] inputs;
+        GeneticTrain g;
+
+        public XOR(double[][] inputs)
+        {
+            this.inputs = inputs;
+
+            g = new GeneticTrain(fitness, new int[3] { 2, 2, 1}, 100);
+        }
+
+        public double fitness(double[] data)
+        {
+            double expectedValue = data[0];
+            double computed = data[1];
+
+            return expectedValue - computed; 
+        }
+
+        //create train func to initialize genetic train
+    }
+    
+    class Program
+    {   
         static void Main(string[] args)
         {
             
