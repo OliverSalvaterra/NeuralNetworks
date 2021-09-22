@@ -6,8 +6,6 @@ namespace NeuralNetwork
 {
     public class ActivationFunction
     {
-        Func<double, double> function;
-        Func<double, double> derivative;
         public ActivationFunction()
         {
         }
@@ -40,6 +38,13 @@ namespace NeuralNetwork
             {
                 dendrites[i] = new Dendrite(previousNeurons[i], this, 1);
             }
+
+            Activation = new ActivationFunction();
+        }
+
+        public Neuron()
+        {
+            Activation = new ActivationFunction();
         }
 
         public void Randomize(Random random, double min, double max) 

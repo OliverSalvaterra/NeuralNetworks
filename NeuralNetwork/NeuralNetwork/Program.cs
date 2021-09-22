@@ -39,7 +39,7 @@ namespace NeuralNetwork
             errorFunc = new ErrorFunction();
             Layers = new Layer[neuronsPerLayer.Length];
 
-            Layers[0] = new Layer(neuronsPerLayer[0], null);
+            Layers[0] = new Layer(neuronsPerLayer[0]);
             for(int i = 1; i < Layers.Length; i++)
             {
                 Layers[i] = new Layer(neuronsPerLayer[i], Layers[i - 1]);
@@ -92,7 +92,7 @@ namespace NeuralNetwork
     public class GeneticTrain
     {        
         Func<double[], double> f;
-        NeuralNetwork[] networks;
+        public NeuralNetwork[] networks { get; set; }
 
         public GeneticTrain(Func<double[], double> f, int[] networkSize, int batchSize)
         {
@@ -171,7 +171,7 @@ namespace NeuralNetwork
             }
         }
 
-        public void Train(Random random, double mutationRate)
+        public double Train(Random random, double mutationRate) // returns best fitness
         {
             Array.Sort(networks, (a, b) => b.Fitness.CompareTo(a.Fitness));
 
@@ -190,6 +190,8 @@ namespace NeuralNetwork
             {
                 networks[i].Randomize(random, 0, 1);
             }
+
+            return networks[0].Fitness;
         }
 
         public void SetFitness(double[][] data)
@@ -204,13 +206,17 @@ namespace NeuralNetwork
     class XOR
     {
         double[][] inputs;
+        double[] outs;
         GeneticTrain g;
+        Random random = new Random();
+        double mutationRate = 0.05;
 
-        public XOR(double[][] inputs)
+        public XOR(double[][] inputs, double[] outs)
         {
             this.inputs = inputs;
+            this.outs = outs;
 
-            g = new GeneticTrain(fitness, new int[3] { 2, 2, 1}, 100);
+            g = new GeneticTrain(fitness, new int[3] {2, 2, 1}, 100);
         }
 
         public double fitness(double[] data)
@@ -222,13 +228,50 @@ namespace NeuralNetwork
         }
 
         //create train func to initialize genetic train
+
+        public double[][] fitnessData()
+        {
+            double[][] d = new double[inputs.Length][];
+
+            for(int i = 0; i < d.Length; i++)
+            {
+                d[i] = new double[2];
+            }
+
+            for(int i = 0; i < g.networks.Length; i++)
+            {
+                d[i][0] = g.networks[i].Compute(inputs[i % 4])[0];
+                d[i][1] = outs[i];
+            }
+
+            return d;
+        }
+
+        public void train()
+        {
+            double error = int.MaxValue;
+
+            while(error > 0.05)
+            {
+                g.SetFitness(fitnessData());
+
+                error = g.Train(random, mutationRate);
+
+                Console.WriteLine(error);
+            }
+        }
     }
     
     class Program
     {   
         static void Main(string[] args)
         {
-            
+            double[][] inputs = { new double[] { 0, 1 }, new double[] { 1, 0 }, new double[] { 1, 1 }, new double[] { 0, 0 } };
+            double[] outputs = { 1, 1, 0, 0};
+
+            XOR xor = new XOR(inputs, outputs);
+
+            xor.train();
         }
     }
 }

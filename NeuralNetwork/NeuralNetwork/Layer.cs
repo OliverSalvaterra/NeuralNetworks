@@ -19,6 +19,18 @@ namespace NeuralNetwork
                 Neurons[i] = new Neuron(previousLayer.Neurons);
             }
         }
+
+        public Layer(int neuronCount)
+        {
+            Neurons = new Neuron[neuronCount];
+            Outputs = new double[neuronCount];
+
+            for (int i = 0; i < Neurons.Length; i++)
+            {
+                Neurons[i] = new Neuron();
+            }
+        }
+
         public void Randomize(Random random, double min, double max) 
         {
             foreach(Neuron n in Neurons)
