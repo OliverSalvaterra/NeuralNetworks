@@ -49,10 +49,14 @@ namespace NeuralNetwork
 
         public void Randomize(Random random, double min, double max) 
         {
-            foreach(Dendrite d in dendrites)
+            if(dendrites != null)
             {
-                d.Weight = random.NextDouble(min, max);
+                foreach(Dendrite d in dendrites)
+                {
+                    d.Weight = random.NextDouble(min, max);
+                }
             }
+            
             bias = random.NextDouble(min, max);
         }
         public double Compute() 

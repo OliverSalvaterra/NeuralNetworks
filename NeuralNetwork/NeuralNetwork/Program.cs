@@ -38,6 +38,7 @@ namespace NeuralNetwork
         {
             errorFunc = new ErrorFunction();
             Layers = new Layer[neuronsPerLayer.Length];
+            Fitness = 1;
 
             Layers[0] = new Layer(neuronsPerLayer[0]);
             for(int i = 1; i < Layers.Length; i++)
@@ -107,9 +108,9 @@ namespace NeuralNetwork
 
         public void Mutate(NeuralNetwork n, Random random, double mutationRate)
         {
-            foreach (Layer layer in n.Layers)
+            for (int j = 1; j < n.Layers.Length; j++) // EXCLUDE THE FIRST LAYER
             {
-                foreach (Neuron neuron in layer.Neurons)
+                foreach (Neuron neuron in n.Layers[j].Neurons)
                 {
                     //Mutate the Weights
                     for (int i = 0; i < neuron.dendrites.Length; i++)
@@ -145,7 +146,7 @@ namespace NeuralNetwork
 
         public void Crossover(NeuralNetwork winner, NeuralNetwork loser, Random random)
         {
-            for (int i = 0; i < winner.Layers.Length; i++)
+            for (int i = 1; i < winner.Layers.Length; i++) // array must start after input layer
             {
                 //References to the Layers
                 Layer winLayer = winner.Layers[i];
@@ -162,7 +163,7 @@ namespace NeuralNetwork
                     Neuron childNeuron = childLayer.Neurons[j];
 
                     //Copy the winners Weights and Bias into the loser/child neuron
-                    for(int n = 0; n < winNeuron.dendrites.Length; i++)
+                    for(int n = 0; n < winNeuron.dendrites.Length; n++)
                     {
                         childNeuron.dendrites[n].Weight = winNeuron.dendrites[n].Weight;
                     }
@@ -171,9 +172,10 @@ namespace NeuralNetwork
             }
         }
 
-        public double Train(Random random, double mutationRate) // returns best fitness
+        public double[] Train(Random random, double mutationRate) // returns best fitness
         {
-            Array.Sort(networks, (a, b) => b.Fitness.CompareTo(a.Fitness));
+            double[] best = new double[networks.Length];
+            Array.Sort(networks, (a, b) => a.Fitness.CompareTo(b.Fitness));
 
             int start = (int)(networks.Length * 0.1);
             int end = (int)(networks.Length * 0.9);
@@ -191,7 +193,12 @@ namespace NeuralNetwork
                 networks[i].Randomize(random, 0, 1);
             }
 
-            return networks[0].Fitness;
+            for(int i = 0; i < networks.Length; i++)
+            {
+                best[i] = networks[i].Fitness;
+            }
+
+            return best;
         }
 
         public void SetFitness(double[][] data)
@@ -209,7 +216,7 @@ namespace NeuralNetwork
         double[] outs;
         GeneticTrain g;
         Random random = new Random();
-        double mutationRate = 0.05;
+        double mutationRate = 0.1;
 
         public XOR(double[][] inputs, double[] outs)
         {
@@ -224,14 +231,14 @@ namespace NeuralNetwork
             double expectedValue = data[0];
             double computed = data[1];
 
-            return expectedValue - computed; 
+            return Math.Abs(expectedValue - computed); 
         }
 
         //create train func to initialize genetic train
 
         public double[][] fitnessData()
         {
-            double[][] d = new double[inputs.Length][];
+            double[][] d = new double[g.networks.Length][];
 
             for(int i = 0; i < d.Length; i++)
             {
@@ -240,8 +247,10 @@ namespace NeuralNetwork
 
             for(int i = 0; i < g.networks.Length; i++)
             {
-                d[i][0] = g.networks[i].Compute(inputs[i % 4])[0];
-                d[i][1] = outs[i];
+                int networkToInput = i % 4; //divides current index by number of input arrays to match input data to a network
+
+                d[i][0] = g.networks[i].Compute(inputs[networkToInput])[0];
+                d[i][1] = outs[networkToInput];
             }
 
             return d;
@@ -249,15 +258,23 @@ namespace NeuralNetwork
 
         public void train()
         {
-            double error = int.MaxValue;
+            double[] errors = new double[100];
+            int generation = 0;
 
-            while(error > 0.05)
+            for(int i = 0; i < errors.Length; i++)
             {
+                errors[i] = 1;
+            }
+
+            while(errors[0] > 0.0001)
+            {
+                generation++;
                 g.SetFitness(fitnessData());
 
-                error = g.Train(random, mutationRate);
-
-                Console.WriteLine(error);
+                errors = g.Train(random, mutationRate);
+                
+                Console.SetCursorPosition(0,0);
+                Console.Write($"Best error: {errors[0]}; not as good error {errors[1]}, also not as good error {errors[2]} \n Generation: {generation}");
             }
         }
     }
